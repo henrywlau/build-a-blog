@@ -14,12 +14,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
+import jinja2
 import webapp2
 
-class MainHandler(webapp2.RequestHandler):
+from google.appengine.ext import db
+
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
+
+class Handler(webapp2.RequestHandler):
+    def write(self, *a, **kw):
+        self.response.out.write(*a, **kw)
+
+    def render_str(self, template, **params):
+        t = jinja_env.get_template(template)
+        return t.render(params)
+
+    def render(self, template, **kw):
+        self.write(self.render_str(template, **kw))
+
+class blog(Handler):
+    def render_front(self, subject="", blog="", error=""):
+
+        self.render("base.html", subject=subject, blog=blog, error=error)
+
     def get(self):
-        self.response.write('Hello world!')
+        self.render_front()
+
+    def post(self):
+        subject = self.request.get("subject")
+        blog = self.request.get("blog")
+
+        if subject and blog:
+            self.write("Yes!")
+        else:
+            error = "We need both a subject and a blog!"
+            self.render_front(subject, blog, error)
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler)
+    ('/', blog)
 ], debug=True)
