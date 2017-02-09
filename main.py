@@ -34,10 +34,19 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-class blog(Handler):
-    def render_front(self, subject="", blog="", error=""):
+class Blog(db.Model):
+    subject = db.StringProperty(required = True)
+    blog = db.TextProperty(required=True)
+    posted = db.DateTimeProperty(auto_now_add = True)
 
-        self.render("base.html", subject=subject, blog=blog, error=error)
+class blog(Handler):
+    def get(self, subject="", blog=""):
+        blogs = db.GqlQuery("SELECT * FROM Blog ORDER BY posted DESC LIMIT 5")
+        self.render("blog.html", subject=subject, blog=blog, blogs=blogs)
+
+class newpost(Handler):
+    def render_front(self, subject="", blog="", error=""):
+        self.render("newpost.html", subject=subject, blog=blog, error=error)
 
     def get(self):
         self.render_front()
@@ -47,11 +56,13 @@ class blog(Handler):
         blog = self.request.get("blog")
 
         if subject and blog:
-            self.write("Yes!")
+            a = Blog(subject = subject, blog = blog)
+            a.put()
+            self.redirect("/")
         else:
             error = "We need both a subject and a blog!"
             self.render_front(subject, blog, error)
 
 app = webapp2.WSGIApplication([
-    ('/', blog)
+    ('/blog', blog), ('/newpost', newpost)
 ], debug=True)
