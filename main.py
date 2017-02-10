@@ -17,6 +17,7 @@
 import os
 import jinja2
 import webapp2
+import datetime
 
 from google.appengine.ext import db
 
@@ -38,11 +39,21 @@ class Blog(db.Model):
     subject = db.StringProperty(required = True)
     blog = db.TextProperty(required=True)
     posted = db.DateTimeProperty(auto_now_add = True)
+    date = db.DateProperty(auto_now_add = True)
 
 class blog(Handler):
-    def get(self, subject="", blog=""):
+    # def convertDate(date):
+    #     dateArray = date.split('-')
+    #     newDateArray = [dateArray[1],dateArray[0],dateArray[2]]
+    #     newDate = newDateArray.join('-')
+    def get(self):
         blogs = db.GqlQuery("SELECT * FROM Blog ORDER BY posted DESC LIMIT 5")
-        self.render("blog.html", subject=subject, blog=blog, blogs=blogs)
+        dateArray = []
+        for blog in blogs:
+            newPosted = blog.date.strftime('%b %d %y')
+            dateArray.append(newPosted)
+
+        self.render("blog.html", blogs=blogs, dateArray=dateArray)
 
 class newpost(Handler):
     def render_front(self, subject="", blog="", error=""):
@@ -56,13 +67,23 @@ class newpost(Handler):
         blog = self.request.get("blog")
 
         if subject and blog:
-            a = Blog(subject = subject, blog = blog)
-            a.put()
-            self.redirect("/")
+            post = Blog(subject = subject, blog = blog)
+            post.put()
+            self.redirect("/blog/%s" % str(post.key().id()))
+            # self.redirect("/blog")
         else:
             error = "We need both a subject and a blog!"
             self.render_front(subject, blog, error)
 
+class ViewPostHandler(webapp2.RequestHandler):
+    def get(self, id):
+        # self.response.write(id)
+        blog = Blog.get_by_id(int(id))
+        t = jinja_env.get_template('viewpost.html')
+        content = t.render(blog=blog)
+
+        self.response.write(content)
+
 app = webapp2.WSGIApplication([
-    ('/blog', blog), ('/newpost', newpost)
+    ('/blog', blog), ('/newpost', newpost), webapp2.Route('/blog/<id:\d+>', ViewPostHandler)
 ], debug=True)

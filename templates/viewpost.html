@@ -1,12 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% for blog in blogs %}
     <div class="blog">
         <div class="blog-subject">{{blog.subject}}</div>
-        <div class="blog-date">{{dateArray[loop.index]}}</div>
+        <div class="blog-date">{{blog.date}}</div>
         <div class="blog-body">{{blog.blog}}</div>
     </div>
-
-{% endfor %}
 {% endblock %}
